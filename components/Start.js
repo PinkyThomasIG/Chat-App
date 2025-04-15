@@ -6,17 +6,43 @@ import {
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
+  Alert,
 } from "react-native";
 
+// Import Firebase Auth
+import { getAuth, signInAnonymously } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getApp } from "firebase/app";
+
 // Import the background image
-import backgroundImage from "../assets/BackgroundImage.png"; // Ensure the path is correct
+import backgroundImage from "../assets/BackgroundImage.png";
 
 const Start = ({ navigation }) => {
   const [name, setName] = useState("");
-  const [bgColor, setBgColor] = useState("#090C08"); // Background color (can still be changed)
+  const [bgColor, setBgColor] = useState("#090C08"); // Background color
 
-  const handleStartChat = () => {
-    navigation.navigate("Chat", { userName: name, bgColor });
+  // Function to sign in anonymously
+  const signInUser = () => {
+    const auth = getAuth(); // Get Firebase Auth instance
+    const db = getFirestore(getApp());
+
+    signInAnonymously(auth)
+      .then((result) => {
+        const user = result.user;
+
+        if (user) {
+          navigation.navigate("Chat", {
+            userID: user.uid,
+            userName: name,
+            bgColor: bgColor,
+            db: db,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error signing in anonymously:", error);
+        Alert.alert("Sign-In Error", "Failed to sign in. Please try again.");
+      });
   };
 
   return (
@@ -29,7 +55,7 @@ const Start = ({ navigation }) => {
       <TextInput
         style={styles.input}
         placeholder="Your name"
-        placeholderTextColor="#757083"
+        placeholderTextColor="#FFFFFF"
         value={name}
         onChangeText={setName}
       />
@@ -45,7 +71,7 @@ const Start = ({ navigation }) => {
       </View>
       <TouchableOpacity
         style={[styles.button, { backgroundColor: "#757083" }]}
-        onPress={handleStartChat}
+        onPress={signInUser}
       >
         <Text style={styles.buttonText}>Start chatting</Text>
       </TouchableOpacity>
@@ -69,7 +95,7 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     width: "80%",
-    borderColor: "#757083",
+    borderColor: "#FFFFFF",
     borderWidth: 1,
     marginBottom: 20,
     paddingLeft: 10,
@@ -78,7 +104,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "300",
-    color: "#757083",
+    color: "#FFFFFF",
     opacity: 0.5,
     marginBottom: 10,
   },
