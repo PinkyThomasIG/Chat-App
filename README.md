@@ -12,7 +12,7 @@ Offline Access - Read your conversations even without internet connection
 
 ## Technologies used
 
-- Frontend
+### Frontend
 
 - **React Native**: Core framework
 - **Expo** Development platform
@@ -21,7 +21,7 @@ Offline Access - Read your conversations even without internet connection
 - **Expo Location** Location services
 - **React Native Maps** Map display for location sharing
 
-- Backend & Storage
+### Backend & Storage
 
 - **Google Firestore Database** Real-time message storage
 - **Google Firebase Authentication** Anonymous user authentication
