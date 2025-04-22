@@ -4,11 +4,11 @@ A mobile chat application built with React Native and Expo that allows users to 
 
 ## Features
 
-Personalized UI - Choose your chat background image for a customized experience
-Real-time Chat - Exchange messages with friends and family instantly
-Image Sharing - Send photos from your camera or library
-Location Sharing - Let others know where you are with a tap
-Offline Access - Read your conversations even without internet connection
+**Personalized UI** - Choose your chat background image for a customized experience
+**Real-time Chat** - Exchange messages with friends and family instantly
+**Image Sharing** - Send photos from your camera or library
+**Location Sharing** - Let others know where you are with a tap
+**Offline Access** - Read your conversations even without internet connection
 
 ## Technologies used
 
@@ -87,7 +87,7 @@ appId: "YOUR_APP_ID"
 5. Install required dependencies:
 
 ```bash
-   expo install @react-navigation/native @react-navigation/native-stack
+expo install @react-navigation/native @react-navigation/native-stack
 expo install @react-native-async-storage/async-storage
 expo install @react-native-community/netinfo
 expo install expo-image-picker
