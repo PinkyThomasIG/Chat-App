@@ -1,121 +1,188 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { StyleSheet, View, Platform, KeyboardAvoidingView } from "react-native";
+import { Bubble, GiftedChat, InputToolbar } from "react-native-gifted-chat";
 import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from "react-native";
-
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { addDoc } from "firebase/firestore";
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+} from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { GiftedChat, InputToolbar } from "react-native-gifted-chat";
+import MapView from "react-native-maps";
+import CustomActions from "./CustomActions";
 
-const Chat = ({ route, navigation, isConnected }) => {
-  const { userName, db, userID, bgColor } = route.params;
+const Chat = ({ db, route, navigation, isConnected, storage }) => {
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { name, userID } = route.params;
 
-  // Set header title and set up Firestore listener
+  let unsubMessages;
+
   useEffect(() => {
-    navigation.setOptions({ title: userName });
+    navigation.setOptions({ title: name });
 
-    const fetchMessages = async () => {
-      if (isConnected) {
-        // If connected, listen for new messages from Firestore
-        const messagesQuery = query(
-          collection(db, "messages"),
-          orderBy("createdAt", "desc")
-        );
+    if (isConnected === true) {
+      if (unsubMessages) unsubMessages();
+      unsubMessages = null;
 
-        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-          const messagesFirestore = snapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              _id: doc.id,
-              text: data.text || "",
-              createdAt: data.createdAt?.toDate() || new Date(),
-              user: data.user || {},
-            };
+      const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
+      unsubMessages = onSnapshot(q, (docs) => {
+        let newMessages = [];
+        docs.forEach((doc) => {
+          newMessages.push({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: new Date(doc.data().createdAt.toMillis()),
           });
-
-          // Set messages and cache them locally
-          setMessages(messagesFirestore);
-          AsyncStorage.setItem(
-            "messages",
-            JSON.stringify(messagesFirestore)
-          ).catch((error) => console.error("Error caching messages:", error));
         });
-
-        return () => unsubscribe(); // Cleanup listener
-      } else {
-        // If not connected, try to fetch cached messages from AsyncStorage
-        const cachedMessages = await AsyncStorage.getItem("messages");
-        if (cachedMessages) {
-          setMessages(JSON.parse(cachedMessages));
-        } else {
-          Alert.alert("You are offline. No cached messages available.");
-        }
-      }
-    };
-
-    fetchMessages();
-  }, [userName, navigation, db, isConnected]);
-
-  // Save new message to Firestore
-  const onSend = (newMessages = []) => {
-    if (isConnected) {
-      // Send the new message to Firestore
-      addDoc(collection(db, "messages"), {
-        _id: newMessages[0]._id,
-        text: newMessages[0].text,
-        createdAt: new Date(),
-        user: {
-          _id: userID,
-          name: userName,
-        },
+        cacheMessages(newMessages);
+        setMessages(newMessages);
       });
-    } else {
-      Alert.alert("You are offline. Message will be sent once connected.");
+    } else loadCachedMessages();
+
+    return () => {
+      if (unsubMessages) unsubMessages();
+    };
+  }, [isConnected]);
+
+  const loadCachedMessages = async () => {
+    const cachedMessages = (await AsyncStorage.getItem("messages")) || [];
+    setMessages(JSON.parse(cachedMessages));
+  };
+
+  const cacheMessages = async (messagesToCache) => {
+    try {
+      await AsyncStorage.setItem("messages", JSON.stringify(messagesToCache));
+    } catch (error) {
+      console.log(error.message);
     }
   };
 
-  // Conditionally render InputToolbar
-  const renderInputToolbar = (props) => {
-    if (isConnected) {
-      return <InputToolbar {...props} />;
-    } else {
-      return null; // Hide InputToolbar if offline
+  const onSend = (newMessages = []) => {
+    if (newMessages.length > 0) {
+      const { _id, text, createdAt, user, location, image } = newMessages[0];
+
+      // Ensure location exists and has valid data
+      const messageToSave = {
+        _id: _id || Date.now().toString(), // Ensure _id is set
+        text: text || "",
+        createdAt: createdAt || new Date(),
+        user: {
+          _id: user._id || "default_user_id",
+          name: user.name || "default_name",
+        },
+        location: location || null, // If location is undefined, default it to null
+        image: image || null, // If image is undefined, default it to null
+      };
+
+      // Log the message before sending to Firestore
+      console.log("Message to save:", messageToSave);
+
+      // Save the message to Firestore
+      addDoc(collection(db, "messages"), messageToSave).catch((error) =>
+        console.error("Error sending message:", error)
+      );
     }
+  };
+
+  const renderInputToolbar = (props) => {
+    if (isConnected === true) return <InputToolbar {...props} />;
+    else return null;
+  };
+
+  const renderBubble = (props) => {
+    return (
+      <Bubble
+        {...props}
+        wrapperStyle={{
+          right: {
+            backgroundColor: "#000",
+          },
+          left: {
+            backgroundColor: "#FFF",
+          },
+        }}
+      />
+    );
+  };
+
+  const renderCustomActions = (props) => {
+    return (
+      <CustomActions
+        storage={storage}
+        onSend={(customMessage) =>
+          onSend([
+            {
+              _id: Date.now().toString(),
+              createdAt: new Date(),
+              user: {
+                _id: userID,
+                name,
+              },
+              ...customMessage,
+            },
+          ])
+        }
+        {...props}
+      />
+    );
+  };
+
+  const renderCustomView = (props) => {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+        <MapView
+          style={{ width: 150, height: 100, borderRadius: 13, margin: 3 }}
+          region={{
+            latitude: currentMessage.location.latitude,
+            longitude: currentMessage.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        />
+      );
+    }
+    return null;
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: bgColor }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <View style={styles.container}>
       <GiftedChat
         messages={messages}
-        onSend={(newMessages) => onSend(newMessages)}
+        renderBubble={renderBubble}
+        renderInputToolbar={renderInputToolbar}
+        onSend={(messages) => onSend(messages)}
+        renderActions={renderCustomActions}
+        renderCustomView={renderCustomView}
         user={{
           _id: userID,
-          name: userName,
-          avatar: "",
+          name,
         }}
-        renderUsernameOnMessage={true}
-        alwaysShowSend={true}
-        isLoadingEarlier={loading}
-        renderInputToolbar={renderInputToolbar} // Pass the renderInputToolbar function
       />
-    </KeyboardAvoidingView>
+
+      {Platform.OS === "android" ? (
+        <KeyboardAvoidingView behavior="height" />
+      ) : null}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  logoutButton: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    backgroundColor: "#C00",
+    padding: 10,
+    zIndex: 1,
+  },
+  logoutButtonText: {
+    color: "#FFF",
+    fontSize: 10,
   },
 });
 
