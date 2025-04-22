@@ -20,6 +20,8 @@ import { getAuth, signInAnonymously } from "firebase/auth";
 import React, { useState, useEffect } from "react";
 import { Alert } from "react-native"; // Importing Alert to show message
 
+import { getStorage } from "firebase/storage";
+
 // Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyB8OAbcuS-Pk-NPEW6UEY3-1nmCMOwI-9Q",
@@ -38,11 +40,13 @@ const App = () => {
   const [db, setDb] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [isConnected, setIsConnected] = useState(true); // State for network connection status
+  const [storage, setStorage] = useState(null);
 
   // Initialize Firebase, Firestore, and Auth
   useEffect(() => {
     const app = initializeApp(firebaseConfig);
     const firestoreDb = getFirestore(app); // Get the Firestore instance correctly
+    const storageInstance = getStorage(app); // Initialize storage here
     const auth = getAuth(app);
 
     // Sign in anonymously
@@ -50,6 +54,7 @@ const App = () => {
       .then((result) => {
         console.log("Signed in anonymously");
         setDb(firestoreDb); // Set Firestore instance
+        setStorage(storageInstance); // Save storage to state
         setAuthUser(result.user); // Set the authenticated user
       })
       .catch((error) => {
@@ -91,7 +96,7 @@ const App = () => {
   }, [isConnected, db]); // Ensure that Firestore is enabled or disabled only after `db` is initialized
 
   // Show loading screen until db and authUser are ready
-  if (!db || !authUser) {
+  if (!db || !authUser || !storage) {
     return <Start />;
   }
 
@@ -104,6 +109,7 @@ const App = () => {
             <Chat
               {...props}
               db={db}
+              storage={storage} // pass storage prop
               userID={authUser.uid}
               userName={authUser.displayName || "Anonymous"}
               isConnected={isConnected} // Pass connection status to Chat
