@@ -14,19 +14,19 @@ Offline Access - Read your conversations even without internet connection
 
 - Frontend
 
-React Native - Core framework
-Expo - Development platform
-React Navigation - Navigation between screens
-Expo Image Picker - Camera and image library access
-Expo Location - Location services
-React Native Maps - Map display for location sharing
+- **React Native**: Core framework
+- **Expo** Development platform
+- **React Navigation** Navigation between screens
+- **Expo Image Picker** Camera and image library access
+- **Expo Location** Location services
+- **React Native Maps** Map display for location sharing
 
 - Backend & Storage
 
-Google Firestore Database - Real-time message storage
-Google Firebase Authentication - Anonymous user authentication
-Firebase Cloud Storage - Storage for images
-AsyncStorage - Offline data persistence
+- **Google Firestore Database** Real-time message storage
+- **Google Firebase Authentication** Anonymous user authentication
+- **Firebase Cloud Storage** Storage for images
+- **AsyncStorage** Offline data persistence
 
 ### Prerequisites
 
